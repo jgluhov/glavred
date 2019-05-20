@@ -1,7 +1,9 @@
-import glavred from './glavred';
+import Glavred from './glavred';
 
-const glvrd = glavred();
+const glavred = new Glavred();
 
-const htmlContent = '<p>!!!</p>';
-console.log(glvrd.parseHTML(htmlContent));
+const html = '<p>!!!</p>';
+const parsedHTML = glavred.parseHTML(html);
+
+const glvrdLib = window['glvrd'];
 

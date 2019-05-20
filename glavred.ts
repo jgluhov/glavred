@@ -20,20 +20,9 @@ export interface IGlavred {
   parseHTML: (htmlStr: string) => TParsedHTMLResult;
 }
 
-export default function glavred() {
+export default class Glavred {
 
-  const getTagSize = (parsedEl: TParsedElement, open: boolean = true) => {
-    if (parsedEl.type === 'text') {
-      return 0;
-    }
-
-    return parsedEl.name.length + (open ? 2 : 3);
-  }
-
-  const getChildren = (parsedEl: TParsedElement) => parsedEl.children || [];
-  const getData = (parsedEl: TParsedElement): string => parsedEl.data ? parsedEl.data : '';
-
-  const parseHTML = (htmlStr: string = ''): TParsedHTMLResult => {
+  parseHTML(htmlStr: string = ''): TParsedHTMLResult {
     let htmlIndex: number = 0;
     let textIndex: number = 0;
 
@@ -43,14 +32,14 @@ export default function glavred() {
     };
 
     const parseFn = (parsedEl: TParsedElement): void => {
-      htmlIndex += getTagSize(parsedEl);
+      htmlIndex += this.getTagSize(parsedEl);
   
-      getChildren(parsedEl).forEach(parseFn);        
+      this.getChildren(parsedEl).forEach(parseFn);        
 
-      const text = getData(parsedEl);
+      const text = this.getData(parsedEl);
 
       if (parsedEl.children) {
-        htmlIndex += getTagSize(parsedEl, false);
+        htmlIndex += this.getTagSize(parsedEl, false);
         return;
       }
 
@@ -62,7 +51,7 @@ export default function glavred() {
       
       result.parsedHTML.push([htmlIndex, text.length, textIndex]);
       textIndex += text.length;
-      htmlIndex += text.length + getTagSize(parsedEl, false);
+      htmlIndex += text.length + this.getTagSize(parsedEl, false);
     }
 
     const parsedElements: TParsedElement[]  = htmlParser.parseDOM(htmlStr);
@@ -71,7 +60,19 @@ export default function glavred() {
     return result;
   }
 
-  return {
-    parseHTML
+  private getChildren(parsedEl: TParsedElement) {
+    return parsedEl.children || [];
   };
+  
+  private getData(parsedEl: TParsedElement): string {
+    return parsedEl.data ? parsedEl.data : '';
+  } 
+
+  private getTagSize(parsedEl: TParsedElement, open: boolean = true) {
+    if (parsedEl.type === 'text') {
+      return 0;
+    }
+
+    return parsedEl.name.length + (open ? 2 : 3);
+  }
 }
