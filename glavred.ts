@@ -1,24 +1,22 @@
 
+import htmlParser from 'htmlparser2';
+
+type TParsedDOM = number[][];
+
 export interface IGlavred {
-  toDOMTree: (htmlStr: string) => HTMLElement;
+  parseDOM: (htmlStr: string) => TParsedDOM;
 }
 
-export default function glavred(window) {
+export default function glavred() {
 
-  const parseFromString = (htmlStr: string) => {
-    return (new window.DOMParser().parseFromString(htmlStr, 'text/html')).body;
-  };
+  const parseDOM = (htmlStr: string = '') => {
+    console.log(htmlParser.parseDOM(htmlStr));
+    // const parser = new htmlParser.parseDOM(null, {decodeEntities: true});
 
-  const toDOMTree = (htmlStr: string = ''): HTMLElement => {
-    if (!htmlStr) {
-      return null;
-    }
-  
-    return parseFromString(htmlStr);
-  };
-
+    return [];
+  }
 
   return {
-    toDOMTree
+    parseDOM
   };
 }
