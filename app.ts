@@ -1,5 +1,7 @@
 import glavred from './glavred';
 
-const glvrd = glavred(window);
+const glvrd = glavred();
 
-glvrd.parseDOM('<div>Hello World</div><p>Papa<span>Mama</span><b>huyamba</b></p>')
+const htmlContent = '<p>!!!</p>';
+console.log(glvrd.parseHTML(htmlContent));
+
