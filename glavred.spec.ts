@@ -53,8 +53,6 @@ describe('toDOMTree()', () => {
 
       });
 
-
-      
     });
   });
 })

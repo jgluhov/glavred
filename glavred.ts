@@ -5,16 +5,17 @@ export interface IGlavred {
 
 export default function glavred(window) {
 
+  const parseFromString = (htmlStr: string) => {
+    return (new window.DOMParser().parseFromString(htmlStr, 'text/html')).body;
+  };
+
   const toDOMTree = (htmlStr: string = ''): HTMLElement => {
     if (!htmlStr) {
       return null;
     }
   
-    const parsedDocument: Document = new window.DOMParser().parseFromString(htmlStr, 'text/html');
-
-    console.log(parsedDocument.body.textContent)
-    return parsedDocument.body;
-  }
+    return parseFromString(htmlStr);
+  };
 
 
   return {
