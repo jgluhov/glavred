@@ -6,7 +6,7 @@ export enum GlavredStatusEnum {
 }
 
 export default class Glavred {
-  public getStatus() {
+  getStatus() {
     return new Promise((res, rej) => {
       this.glvrd.getStatus((response: TStatus) => 
         this.isOK(response) ? res(response) : rej(response)
@@ -14,7 +14,7 @@ export default class Glavred {
     })
   }
 
-  public proofread(text: string = '') {
+  proofread(text: string = '') {
     return new Promise((res, rej) => {
       this.glvrd.proofread(text, (proof: IProof) => {
         this.isOK(proof) ? res(proof) : rej(proof);
@@ -22,7 +22,7 @@ export default class Glavred {
     })
   }
 
-  isOK(response: TStatus) {
+  private isOK(response: TStatus) {
     return response.status === GlavredStatusEnum.OK;
   }
 
