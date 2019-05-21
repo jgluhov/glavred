@@ -1,11 +1,11 @@
-import Glavred, { IGlavred } from './glavred';
+import Glavred from './glavred';
 import { expect } from 'chai';
 // import { JSDOM } from 'jsdom';
 import 'mocha';
 
 describe('Glavred', () => {
   // let jsDOM: JSDOM;
-  let glavred: IGlavred;
+  let glavred: Glavred;
 
   beforeEach(() => {
     // jsDOM = new JSDOM();

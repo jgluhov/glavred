@@ -1,28 +1,14 @@
-
 import htmlParser from 'htmlparser2';
+import { IParsedElement, IParsedHTMLResult, IProof, TStatus } from './glavred.interface';
 
-type TParsedHTMLResult = {
-  text: string;
-  parsedHTML: number[][];
-};
-
-type TParsedElement = {
-  data?: string;
-  type: string;
-  next: TParsedElement;
-  prev: TParsedElement;
-  parent: TParsedElement;
-  name: string;
-  children?: TParsedElement[];
-}
-
-export interface IGlavred {
-  parseHTML: (htmlStr: string) => TParsedHTMLResult;
+export enum GlavredStatusEnum {
+  OK = 'ok',
+  ERROR = 'error'
 }
 
 export default class Glavred {
 
-  parseHTML(htmlStr: string = ''): TParsedHTMLResult {
+  parseHTML(htmlStr: string = ''): IParsedHTMLResult {
     let htmlIndex: number = 0;
     let textIndex: number = 0;
 
@@ -31,7 +17,7 @@ export default class Glavred {
       parsedHTML: []
     };
 
-    const parseFn = (parsedEl: TParsedElement): void => {
+    const parseFn = (parsedEl: IParsedElement): void => {
       htmlIndex += this.getTagSize(parsedEl);
   
       this.getChildren(parsedEl).forEach(parseFn);        
@@ -54,25 +40,49 @@ export default class Glavred {
       htmlIndex += text.length + this.getTagSize(parsedEl, false);
     }
 
-    const parsedElements: TParsedElement[]  = htmlParser.parseDOM(htmlStr);
+    const parsedElements: IParsedElement[]  = htmlParser.parseDOM(htmlStr);
     parsedElements.forEach(parseFn)
 
     return result;
   }
 
-  private getChildren(parsedEl: TParsedElement) {
+  private getChildren(parsedEl: IParsedElement) {
     return parsedEl.children || [];
   };
   
-  private getData(parsedEl: TParsedElement): string {
+  private getData(parsedEl: IParsedElement): string {
     return parsedEl.data ? parsedEl.data : '';
   } 
 
-  private getTagSize(parsedEl: TParsedElement, open: boolean = true) {
+  private getTagSize(parsedEl: IParsedElement, open: boolean = true) {
     if (parsedEl.type === 'text') {
       return 0;
     }
 
     return parsedEl.name.length + (open ? 2 : 3);
+  }
+
+  public getStatus() {
+    return new Promise((res, rej) => {
+      this.glvrd.getStatus((response: TStatus) => 
+        this.isOK(response) ? res(response) : rej(response)
+      )
+    })
+  }
+
+  public proofread(text: string = '') {
+    return new Promise((res, rej) => {
+      this.glvrd.proofread(text, (proof: IProof) => {
+        this.isOK(proof) ? res(proof) : rej(proof);
+      });
+    })
+  }
+
+  isOK(response: TStatus) {
+    return response.status === GlavredStatusEnum.OK;
+  }
+
+  get glvrd() {
+    return window && window['glvrd'];
   }
 }

@@ -1,9 +1,22 @@
 import Glavred from './glavred';
 
 const glavred = new Glavred();
+const html = '<p>!!!</p><div>mamba hello!!!</div>';
 
-const html = '<p>!!!</p>';
-const parsedHTML = glavred.parseHTML(html);
+async function main() {
+  try {
+    const status = await glavred.getStatus();
+    const proofread = await glavred.proofread(html);
+    
+    console.log('status', status);
+    console.log('proofread', proofread);
+  } catch (e) {
+    console.log(e);
+  }
+}
 
-const glvrdLib = window['glvrd'];
+main();
+
+
+
 
