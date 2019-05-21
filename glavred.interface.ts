@@ -16,6 +16,7 @@ export interface IProofFragmentHint {
 export interface IProofFragment {
   start: number;
   end: number;
+  hint: IProofFragmentHint;
   url: string;
 }
 

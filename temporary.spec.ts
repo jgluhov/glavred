@@ -9,7 +9,7 @@ describe('Glavred', () => {
     glavred = new Glavred();
   });
 
-  describe('parseHTML()', () => {
+  xdescribe('parseHTML()', () => {
     describe('when there is an empty tag', () => {
       it('should return correct result', () => {
         expect(glavred.parseHTML('<p></p>')).to.deep.equal({
