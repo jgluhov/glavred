@@ -1,7 +1,7 @@
 import Glavred from './glavred';
 
 const glavred = new Glavred();
-const html = '<p>!!!</p><div>mamba hello!!!</div>';
+const html = '!!!<p>!!!</p></p> hello<img src="http!!!" />!!!';
 
 async function main() {
   try {
