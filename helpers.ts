@@ -18,9 +18,9 @@ export const createFragment = (
   }
 }
 
-export const createProof = (startIndex = 0, endIndex = 0) => {
+export const createProof = (...frgms) => {
   return {
-    fragments: [ createFragment(startIndex, endIndex) ],
+    fragments: frgms.map(fragment => createFragment(fragment[0], fragment[1])),
     score: '1.2',
     status: 'ok'
   };

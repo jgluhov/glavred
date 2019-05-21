@@ -26,53 +26,54 @@ export default class Glavred {
   async proof(text: string): Promise<string> {
     const proof = await this.proofread(text);
 
-    const splits = this.splitText(text, proof.fragments);
+    const particles = this.parseHTML(text, proof.fragments);
 
-    if (!splits.length) {
+    if (!size(particles)) {
       return text;
     }
 
-    if (splits.length === 1) {
-
-    }
-
-    for (let i = 0; i < splits.length; i += 2) {
-    }
+    const proofedHTML = particles
+      .map(particle => {
+        return particle[1] ? this.highlight(particle[0]) : particle[0];
+      })
+      .join('');
     
-    return '';
+    return proofedHTML;
   }
 
-  wrapText(text: string = '') {
+  highlight(text: string = '') {
     return `<em class="hint hint--highlighted">${text}</em>`;
   }
 
-  splitText(text: string, fragments: IProofFragment[]) {
+  parseHTML(htmlStr: string, fragments: IProofFragment[]) {
+    if (!htmlStr) {
+      return [];
+    }
+
     if (!size(fragments)) {
-      return [text];
+      return [[htmlStr, false]];
     }
 
     let currentIndex = 0;
-    return fragments
-      .reduce(
-        (acc, fragment, index, array) => {
-        
-          if (fragments[index].start > currentIndex) {
-            acc.push(text.slice(currentIndex, fragment.start));
-          }
+    let parsing = [];
 
-          acc.push(text.slice(fragment.start, fragment.end));
+    for(let index = 0; index < fragments.length; index++) {
+      const fragment = fragments[index];
 
-          currentIndex = fragment.end;
+      if (fragment.start > currentIndex) {
+        parsing.push([ htmlStr.slice(currentIndex, fragment.start), false ]);
+      }
 
-          if (last(array) === fragment && last(array).end < size(text)) {
-            acc.push(text.slice(fragment.end));
-          }
+      parsing.push([ htmlStr.slice(fragment.start, fragment.end), true ]);
 
-          return acc;
-        },
-        []
-      )
-      .filter((s) => s);
+      currentIndex = fragment.end;
+
+      if (last(fragments) === fragment && last(fragments).end < size(htmlStr)) {
+        parsing.push([ htmlStr.slice(fragment.end), false ]);
+      }
+    }
+
+    return parsing;
   }
 
   private isOK(response: TStatus) {

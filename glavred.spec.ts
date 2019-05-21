@@ -21,73 +21,96 @@ describe('Glavred', () => {
   afterEach(() => {
     sandbox.restore();
   });
-
   describe('proof()', () => {
-    beforeEach(() => {
-      sinon.stub(glavred, 'proofread')
-        .resolves(helpers.createProof(0, 3));
-    });
-
-    describe('when there is no text', () => {
+    xdescribe('when there is no text', () => {
       it('should return correct result', () => {
         return expect(glavred.proof(''))
           .to.eventually.equal('');
       })
     });
 
-    xdescribe('without html tags', () => {
+    describe('without html tags', () => {
       describe('when there is a single error', () => {
         it('should return correct html', () => {
+          sinon.stub(glavred, 'proofread').resolves(helpers.createProof([0, 3]));
+
           return expect(glavred.proof('!!!'))
             .to.eventually.equal('<em class="hint hint--highlighted">!!!</em>');
+        });
+      })
+
+      describe('when there are multiple', () => {
+        it('should return correct html', () => {
+          sinon.stub(glavred, 'proofread').resolves(helpers.createProof([0, 3], [8, 11]));
+          return expect(glavred.proof('!!!mamba!!!'))
+            .to.eventually.equal(`<em class="hint hint--highlighted">!!!</em>mamba<em class="hint hint--highlighted">!!!</em>`);
+        });
+      })
+    })
+
+    describe('with html tags', () => {
+      describe('when there is a single error', () => {
+        it('should return correct html', () => {
+          sinon.stub(glavred, 'proofread').resolves(helpers.createProof([3, 6]));
+
+          return expect(glavred.proof('<p>!!!</p>'))
+            .to.eventually.equal('<p><em class="hint hint--highlighted">!!!</em></p>');
+        });
+      })
+
+      describe('when there are multiple', () => {
+        it('should return correct html', () => {
+          sinon.stub(glavred, 'proofread').resolves(helpers.createProof([0, 3], [21, 24]));
+          return expect(glavred.proof('!!!<span>mamba</span>!!!<img src="http://some.jpeg" />'))
+            .to.eventually.equal(`<em class="hint hint--highlighted">!!!</em><span>mamba</span><em class="hint hint--highlighted">!!!</em><img src="http://some.jpeg" />`);
         });
       })
     })
   });
 
-  describe('splitText()', () => {
+  describe('parseHTML()', () => {
     describe('when there is no fragment', () => {
       it('should return correct result', () => {
-        expect(glavred.splitText('!!!', [])).to.deep.equal(['!!!']);
+        expect(glavred.parseHTML('!!!', [])).to.deep.equal([['!!!', false]]);
       })
     });
     describe('when there is a single fragment', () => {
       it('should return correct result', () => {
-        expect(glavred.splitText('!!!', [helpers.createFragment(0, 3)]))
-          .to.deep.equal(['!!!']);
+        expect(glavred.parseHTML('!!!', [helpers.createFragment(0, 3)]))
+          .to.deep.equal([['!!!', true]]);
       })
     });
     describe('when there is a single fragment', () => {
       it('should return correct result', () => {
-        expect(glavred.splitText('!!!', [
+        expect(glavred.parseHTML('!!!', [
           helpers.createFragment(0, 1)
         ]))
-          .to.deep.equal(['!', '!!']);
+          .to.deep.equal([['!', true], ['!!', false]]);
       })
     });
     describe('when there are several fragments', () => {
       it('should return correct result', () => {
 
-        expect(glavred.splitText('!!!mamba!!!', [
+        expect(glavred.parseHTML('!!!mamba!!!', [
           helpers.createFragment(0, 3),
           helpers.createFragment(8, 11)
         ]))
-          .to.deep.equal(['!!!', 'mamba', '!!!']);
+          .to.deep.equal([['!!!', true], ['mamba', false], ['!!!', true]]);
       })
     });
-    describe('when there are several fragments 2', () => {
+    xdescribe('when there are several fragments 2', () => {
       it('should return correct result', () => {
-        expect(glavred.splitText('!!!ma!!!a!!!', [
+        expect(glavred.parseHTML('!!!ma!!!a!!!', [
           helpers.createFragment(0, 3),
           helpers.createFragment(5, 8),
           helpers.createFragment(9, 12)
         ]))
-        .to.deep.equal(['!!!', 'ma', '!!!', 'a', '!!!']);
+        .to.deep.equal([['!!!', true], ['ma', false], ['!!!', true], ['a', false], ['!!!', true]]);
       })
     });
     describe('when there is no text', () => {
       it('should return correct result', () => {
-        expect(glavred.splitText('', [
+        expect(glavred.parseHTML('', [
           helpers.createFragment(0, 3)
         ]))
           .to.deep.equal([]);
@@ -95,17 +118,17 @@ describe('Glavred', () => {
     });
   })
 
-  describe('wrapText()', () => {
+  describe('highlight()', () => {
     describe('when pass empty string', () => {
       it('should return correct wrapped text', () => {
-        expect(glavred.wrapText(''))
+        expect(glavred.highlight(''))
           .to.equal('<em class="hint hint--highlighted"></em>')
       });
     });
 
     describe('when pass some string', () => {
       it('should return correct wrapped text', () => {
-        expect(glavred.wrapText('some'))
+        expect(glavred.highlight('some'))
           .to.equal('<em class="hint hint--highlighted">some</em>')
       });
     });
