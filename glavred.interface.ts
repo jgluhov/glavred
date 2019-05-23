@@ -8,6 +8,7 @@ export type TErrorStatus = TStatus & {
 }
 
 export interface IProofFragmentHint {
+  id: string;
   description: string;
   name: string;
   penalty: number;
@@ -35,8 +36,9 @@ export interface IParsedElement {
   children?: IParsedElement[];
 }
 
-export type IParsedHTMLResult = {
+export type TParsedHTMLResult = {
   text: string;
   parsedHTML: number[][];
 };
 
+export type TParticle = Array<string | boolean>;

@@ -1,0 +1,64 @@
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  padding: 20px;
+  display: flex;
+}
+
+.editor {
+  width: 600px;
+}
+
+.editor__control {
+  width: 100%;
+  font-size: 13px;
+}
+
+.display {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  width: 600px;
+}
+
+.display__content {
+  padding: 5px;
+  min-height: 400px;
+  width: 100%;
+  background-color: aliceblue;
+}
+
+.display__progress {
+  position: absolute;
+  right: 0;
+  top: 0;
+  display: none;
+}
+
+.display__progress--visible {
+  display: block;
+}
+
+.hint {
+  font-style: normal;
+  font-weight: normal;
+  border-radius: .2em;
+  padding-bottom: 2px;
+
+  color: #ff9000;
+  background: url(/underline.svg) 2px 100% repeat-x;
+
+  transition: background-color .25s, color .25s;
+}
+
+.hint:hover {
+  background-color: #ff9000;
+  color: #fff;
+}

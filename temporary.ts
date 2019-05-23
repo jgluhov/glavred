@@ -1,5 +1,5 @@
 import htmlParser from 'htmlparser2';
-import { IParsedElement, IParsedHTMLResult } from './glavred.interface';
+import { IParsedElement, TParsedHTMLResult } from './glavred.interface';
 
 export enum GlavredStatusEnum {
   OK = 'ok',
@@ -8,7 +8,7 @@ export enum GlavredStatusEnum {
 
 export default class Glavred {
 
-  parseHTML(htmlStr: string = ''): IParsedHTMLResult {
+  parseHTML(htmlStr: string = ''): TParsedHTMLResult {
     let htmlIndex: number = 0;
     let textIndex: number = 0;
 

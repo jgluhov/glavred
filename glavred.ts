@@ -1,5 +1,5 @@
-import { IProof, TStatus, IProofFragment } from './glavred.interface';
-import { size, last, first } from 'lodash';
+import { IProof, TStatus, IProofFragment, TParticle } from './glavred.interface';
+import { size, last } from 'lodash';
 
 export enum GlavredStatusEnum {
   OK = 'ok',
@@ -23,6 +23,10 @@ export default class Glavred {
     })
   }
 
+  abortProofreading() {
+    this.glvrd.abortProofreading();
+  }
+
   async proof(text: string): Promise<string> {
     const proof = await this.proofread(text);
 
@@ -34,15 +38,28 @@ export default class Glavred {
 
     const proofedHTML = particles
       .map(particle => {
-        return particle[1] ? this.highlight(particle[0]) : particle[0];
+        return this.hasError(particle) ?
+          this.highlight(particle) : this.getText(particle);
       })
       .join('');
     
     return proofedHTML;
   }
 
-  highlight(text: string = '') {
-    return `<em class="hint hint--highlighted">${text}</em>`;
+  hasError(particle: TParticle) {
+    return particle[1];
+  }
+
+  getText(particle: TParticle) {
+    return particle[0]
+  }
+
+  highlight(particle: TParticle) {
+    if (!particle[0]) {
+      return '';
+    }
+
+    return `<span style="color: rgb(243, 121, 52);" class="glavred__error-${particle[2]}">${particle[0]}</span>`;
   }
 
   parseHTML(htmlStr: string, fragments: IProofFragment[]) {
@@ -51,7 +68,7 @@ export default class Glavred {
     }
 
     if (!size(fragments)) {
-      return [[htmlStr, false]];
+      return [[htmlStr, false, '']];
     }
 
     let currentIndex = 0;
@@ -61,15 +78,15 @@ export default class Glavred {
       const fragment = fragments[index];
 
       if (fragment.start > currentIndex) {
-        parsing.push([ htmlStr.slice(currentIndex, fragment.start), false ]);
+        parsing.push([ htmlStr.slice(currentIndex, fragment.start), false, '' ]);
       }
 
-      parsing.push([ htmlStr.slice(fragment.start, fragment.end), true ]);
+      parsing.push([ htmlStr.slice(fragment.start, fragment.end), true, fragment.hint.id ]);
 
       currentIndex = fragment.end;
 
       if (last(fragments) === fragment && last(fragments).end < size(htmlStr)) {
-        parsing.push([ htmlStr.slice(fragment.end), false ]);
+        parsing.push([ htmlStr.slice(fragment.end), false, '' ]);
       }
     }
 
