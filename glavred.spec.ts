@@ -23,14 +23,14 @@ describe('Glavred', () => {
     sandbox.restore();
   });
 
-  // describe('proof()', () => {
-  //   describe('when there is no text', () => {
-  //     it('should return correct result', () => {
-  //       sinon.stub(glavred, 'proofread').resolves(helpers.createProof());
-  //       return expect(glavred.proof(''))
-  //         .to.eventually.equal('');
-  //     })
-  //   });
+  describe('proof()', () => {
+    describe('when there is no text', () => {
+      it('should return correct result', () => {
+        sinon.stub(glavred, 'proofread').resolves(helpers.createProof());
+        return expect(glavred.proof(''))
+          .to.eventually.equal('');
+      })
+    });
 
   //   describe('without html tags', () => {
   //     describe('when there is a single error', () => {
@@ -78,7 +78,7 @@ describe('Glavred', () => {
   //       });
   //     })
   //   })
-  // });
+  });
 
   describe('parseHTML()', () => {
     describe('when there is only text', () => {
