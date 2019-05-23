@@ -4,6 +4,7 @@ import 'mocha';
 import * as sinon from 'sinon';
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
+import { TParsedHTMLResult, IProof } from './glavred.interface';
 
 describe('Glavred', () => {
   let glavred: Glavred;
@@ -22,126 +23,229 @@ describe('Glavred', () => {
     sandbox.restore();
   });
 
-  describe('proof()', () => {
-    describe('when there is no text', () => {
+  // describe('proof()', () => {
+  //   describe('when there is no text', () => {
+  //     it('should return correct result', () => {
+  //       sinon.stub(glavred, 'proofread').resolves(helpers.createProof());
+  //       return expect(glavred.proof(''))
+  //         .to.eventually.equal('');
+  //     })
+  //   });
+
+  //   describe('without html tags', () => {
+  //     describe('when there is a single error', () => {
+  //       it('should return correct html', () => {
+  //         const proof = helpers.createProof([0, 3]);
+  //         sinon.stub(glavred, 'proofread').resolves(proof);
+
+
+
+  //         return expect(glavred.proof('!!!'))
+  //           .to.eventually.equal(`<span style="color: rgb(243, 121, 52);" class="glavred__error-${helpers.getHintIdInProof(proof, 0)}">!!!</span>`);
+  //       });
+  //     })
+
+  //     describe('when there are multiple', () => {
+  //       it('should return correct html', () => {
+  //         const proof = helpers.createProof([0, 3], [8, 11]);
+
+  //         sinon.stub(glavred, 'proofread').resolves(proof);
+  //         return expect(glavred.proof('!!!mamba!!!'))
+  //           .to.eventually.equal(`<span style="color: rgb(243, 121, 52);" class="glavred__error-${helpers.getHintIdInProof(proof, 0)}">!!!</span>mamba<span style="color: rgb(243, 121, 52);" class="glavred__error-${helpers.getHintIdInProof(proof, 1)}">!!!</span>`);
+  //       });
+  //     })
+  //   })
+
+  //   describe('with html tags', () => {
+  //     describe('when there is a single error', () => {
+  //       it('should return correct html', () => {
+  //         const proof = helpers.createProof([3, 6]);
+  //         sinon.stub(glavred, 'proofread').resolves(proof);
+
+  //         return expect(glavred.proof('<p>!!!</p>'))
+  //           .to.eventually.equal(`<p><span style="color: rgb(243, 121, 52);" class="glavred__error-${helpers.getHintIdInProof(proof, 0)}">!!!</span></p>`);
+  //       });
+  //     })
+
+  //     describe('when there are multiple', () => {
+  //       it('should return correct html', () => {
+  //         const proof = helpers.createProof([0, 3], [21, 24]);
+
+  //         sinon.stub(glavred, 'proofread').resolves(proof);
+          
+  //         return expect(glavred.proof('!!!<span>mamba</span>!!!<img src="http://some.jpeg" />'))
+  //           .to.eventually.equal(`<span style="color: rgb(243, 121, 52);" class="glavred__error-${helpers.getHintIdInProof(proof, 0)}">!!!</span><span>mamba</span><span style="color: rgb(243, 121, 52);" class="glavred__error-${helpers.getHintIdInProof(proof, 1)}">!!!</span><img src="http://some.jpeg" />`);
+  //       });
+  //     })
+  //   })
+  // });
+
+  describe('parseHTML()', () => {
+    describe('when there is only text', () => {
       it('should return correct result', () => {
-        sinon.stub(glavred, 'proofread').resolves(helpers.createProof());
-        return expect(glavred.proof(''))
-          .to.eventually.equal('');
-      })
+        expect(glavred.parseHTML('!!!')).to.deep.equal({
+          text: '!!!',
+          result: [[0, 3, 0]]
+        });
+      });
     });
 
-    describe('without html tags', () => {
-      describe('when there is a single error', () => {
-        it('should return correct html', () => {
-          const proof = helpers.createProof([0, 3]);
-          sinon.stub(glavred, 'proofread').resolves(proof);
+    describe('when there is an empty tag', () => {
+      it('should return correct result', () => {
+        expect(glavred.parseHTML('<p></p>')).to.deep.equal({
+          text: '',
+          result: []
+        });
+      });
+    });
 
+    describe('when there are several empty tags', () => {
+      it('should return correct result', () => {
+        expect(glavred.parseHTML('<p></p><div></div>')).to.deep.equal({
+          text: '',
+          result: []
+        });
+      });
+    });
 
+    describe('when there is some text between tags', () => {
+      it('should return correct result', () => {
+        expect(glavred.parseHTML('<p></p>some<div></div>')).to.deep.equal({
+          text: 'some',
+          result: [[7, 4, 0]]
+        });
+      });
+    });
 
-          return expect(glavred.proof('!!!'))
-            .to.eventually.equal(`<span style="color: rgb(243, 121, 52);" class="glavred__error-${helpers.getHintIdInProof(proof, 0)}">!!!</span>`);
+    describe('when there is a list', () => {
+      describe('when there is a single item', () => {
+        it('should return correct result', () => {
+          expect(glavred.parseHTML('<ul><li>content</li></ul>')).to.deep.equal({
+            text: 'content',
+            result: [[8, 7, 0]]
+          });
         });
       })
 
-      describe('when there are multiple', () => {
-        it('should return correct html', () => {
-          const proof = helpers.createProof([0, 3], [8, 11]);
-
-          sinon.stub(glavred, 'proofread').resolves(proof);
-          return expect(glavred.proof('!!!mamba!!!'))
-            .to.eventually.equal(`<span style="color: rgb(243, 121, 52);" class="glavred__error-${helpers.getHintIdInProof(proof, 0)}">!!!</span>mamba<span style="color: rgb(243, 121, 52);" class="glavred__error-${helpers.getHintIdInProof(proof, 1)}">!!!</span>`);
+      describe('when there are several items', () => {
+        it('should return correct result', () => {
+          expect(glavred.parseHTML('<ul><li>content1</li><li>content2</li></ul>')).to.deep.equal({
+            text: 'content1content2',
+            result: [[8, 8, 0], [25, 8, 8]]
+          });
         });
-      })
-    })
+      });
+    });
 
-    describe('with html tags', () => {
-      describe('when there is a single error', () => {
-        it('should return correct html', () => {
-          const proof = helpers.createProof([3, 6]);
-          sinon.stub(glavred, 'proofread').resolves(proof);
-
-          return expect(glavred.proof('<p>!!!</p>'))
-            .to.eventually.equal(`<p><span style="color: rgb(243, 121, 52);" class="glavred__error-${helpers.getHintIdInProof(proof, 0)}">!!!</span></p>`);
+    describe('when there is some text after the last tag', () => {
+      it('should return correct result', () => {
+        expect(glavred.parseHTML('<p></p>some')).to.deep.equal({
+          text: 'some',
+          result: [[7, 4, 0]]
         });
-      })
+      });
+    });
 
-      describe('when there are multiple', () => {
-        it('should return correct html', () => {
-          const proof = helpers.createProof([0, 3], [21, 24]);
-
-          sinon.stub(glavred, 'proofread').resolves(proof);
-          
-          return expect(glavred.proof('!!!<span>mamba</span>!!!<img src="http://some.jpeg" />'))
-            .to.eventually.equal(`<span style="color: rgb(243, 121, 52);" class="glavred__error-${helpers.getHintIdInProof(proof, 0)}">!!!</span><span>mamba</span><span style="color: rgb(243, 121, 52);" class="glavred__error-${helpers.getHintIdInProof(proof, 1)}">!!!</span><img src="http://some.jpeg" />`);
+    describe('when there is some text before the first tag', () => {
+      it('should return correct result', () => {
+        expect(glavred.parseHTML('some<p></p>')).to.deep.equal({
+          text: 'some',
+          result: [[0, 4, 0]]
         });
-      })
+      });
+    });
+
+    describe('when there is an internal tag', () => {
+      it('should return correct result', () => {
+        expect(glavred.parseHTML('<p>some<b>bold</b>some</p>')).to.deep.equal({
+          text: 'someboldsome',
+          result: [[3, 4, 0], [10, 4, 4], [18, 4, 8]]
+        });
+      });
+    });
+
+    describe('when there is a single tag', () => {
+      it('should return correct result', () => {
+        expect(glavred.parseHTML('<p>Hello World</p>')).to.deep.equal({
+          text: 'Hello World',
+          result: [[3, 11, 0]]
+        });
+      });
+    });
+
+    describe('when there are several tags', () => {
+      it('should return correct result', () => {
+        expect(glavred.parseHTML('<p>Hello World.</p><p>Who are you ?</p>')).to.deep.equal({
+          text: 'Hello World.Who are you ?',
+          result: [[3, 12, 0], [22, 13, 12]]
+        });
+      });
     })
   });
 
-  describe('parseHTML()', () => {
-    let fragments;
+  describe('applyProof()', () => {
+    let proof: IProof;
+    let text: string;
 
-    describe('when there is no fragment', () => {
+    describe('when there is no errors', () => {
       it('should return correct result', () => {
-        expect(glavred.parseHTML('!!!', [])).to.deep.equal([['!!!', false, '']]);
+        proof = helpers.createProof();
+
+        expect(glavred.applyProof('!!!', proof)).to.deep.equal([['!!!', false, '']]);
+      })
+    });
+    describe('when there is a error', () => {
+      it('should return correct result', () => {
+        proof = helpers.createProof([0, 3]);
+
+        expect(glavred.applyProof('!!!', proof))
+          .to.deep.equal([['!!!', true, helpers.getHintIdInProof(proof, 0)]]);
       })
     });
     describe('when there is a single fragment', () => {
       it('should return correct result', () => {
-        fragments = [helpers.createFragment(0, 3)];
-        expect(glavred.parseHTML('!!!', fragments))
-          .to.deep.equal([['!!!', true, helpers.getHintIdInFragment(fragments, 0)]]);
-      })
-    });
-    describe('when there is a single fragment', () => {
-      it('should return correct result', () => {
-        fragments = [
-          helpers.createFragment(0, 1)
-        ];
+        proof = helpers.createProof([0, 1]);
 
-        expect(glavred.parseHTML('!!!', fragments))
-          .to.deep.equal([['!', true, helpers.getHintIdInFragment(fragments, 0)], ['!!', false, '']]);
+        expect(glavred.applyProof('!!!', proof))
+          .to.deep.equal([
+            ['!', true, helpers.getHintIdInProof(proof, 0)],
+            ['!!', false, '']
+          ]);
       })
     });
     describe('when there are several fragments', () => {
       it('should return correct result', () => {
-        fragments = [
-          helpers.createFragment(0, 3),
-          helpers.createFragment(8, 11)
-        ];
+        text = '!!!mamba!!!';
+        proof = helpers.createProof([0, 3], [8, 11]);
 
-        expect(glavred.parseHTML('!!!mamba!!!', fragments))
+        expect(glavred.applyProof('!!!mamba!!!', proof))
           .to.deep.equal([
-            ['!!!', true, helpers.getHintIdInFragment(fragments, 0)],
+            ['!!!', true, helpers.getHintIdInProof(proof, 0)],
             ['mamba', false, ''],
-            ['!!!', true, helpers.getHintIdInFragment(fragments, 1)]
+            ['!!!', true, helpers.getHintIdInProof(proof, 1)]
           ]);
       })
     });
     describe('when there are several fragments 2', () => {
       it('should return correct result', () => {
-        fragments = [
-          helpers.createFragment(0, 3),
-          helpers.createFragment(5, 8),
-          helpers.createFragment(9, 12)
-        ];
+        text = '!!!ma!!!a!!!';
+        proof = helpers.createProof([0, 3], [5, 8], [9, 12]);
 
-        expect(glavred.parseHTML('!!!ma!!!a!!!', fragments))
+        expect(glavred.applyProof('!!!ma!!!a!!!', proof))
         .to.deep.equal([
-          ['!!!', true, helpers.getHintIdInFragment(fragments, 0)],
+          ['!!!', true, helpers.getHintIdInProof(proof, 0)],
           ['ma', false, ''],
-          ['!!!', true, helpers.getHintIdInFragment(fragments, 1)],
+          ['!!!', true, helpers.getHintIdInProof(proof, 1)],
           ['a', false, ''],
-          ['!!!', true, helpers.getHintIdInFragment(fragments, 2)]
+          ['!!!', true, helpers.getHintIdInProof(proof, 2)]
         ]);
       })
     });
-    xdescribe('when there is no text', () => {
+    describe('when there is no text', () => {
       it('should return correct result', () => {
-        expect(glavred.parseHTML('', [
-          helpers.createFragment(0, 3)
-        ]))
+        proof = helpers.createProof();
+
+        expect(glavred.applyProof('', proof))
           .to.deep.equal([]);
       })
     });
@@ -162,5 +266,53 @@ describe('Glavred', () => {
       });
     });
   });
+  
+  describe('cleanHTML', () => {
+    let htmlStr;
+    let expectedHtmlStr;
 
+    describe('when pass incorrect param', () => {
+      it('should return empty string', () => {
+        expect(glavred.cleanHTML('')).to.equal('');
+      });
+    });
+
+    describe('when pass a string without html tags', () => {
+      it('should return exactly the same string', () => {
+        htmlStr = 'Hello World!';
+        expect(glavred.cleanHTML(htmlStr)).to.equal(htmlStr);
+      });
+    })
+
+    describe('when pass a string with an html tag', () => {
+      it('should return correct html string', () => {
+        htmlStr = '<p>Hello World!</p>';
+        expect(glavred.cleanHTML(htmlStr)).to.equal(htmlStr);
+      });
+    })
+
+    describe('when pass a string with errors', () => {
+      it('should return correct html string', () => {
+        htmlStr = 'Hello<span class="glavred__error-c0bcfe14b7bd9" style="color: rgb(243, 121, 52);">World!</span>';
+        expectedHtmlStr = 'HelloWorld!'
+        expect(glavred.cleanHTML(htmlStr)).to.equal(expectedHtmlStr);
+      });
+    })
+
+    describe('when pass a string several errors', () => {
+      it('should return correct html string', () => {
+        htmlStr = 'Hello<span class="glavred__error-c0bcfe14b7bd9" style="color: rgb(243, 121, 52);">World!</span><p>some</p><span class="glavred__error-c0bcfe14b7bd9" style="color: rgb(243, 121, 52);">World!</span><b></b>';
+        expectedHtmlStr = 'HelloWorld!<p>some</p>World!<b></b>'
+        expect(glavred.cleanHTML(htmlStr)).to.equal(expectedHtmlStr);
+      });
+    })
+
+    describe('when pass a string several errors', () => {
+      it('should return correct html string', () => {
+        htmlStr = 'Hello<span class="glavred__error-c0bcfe14b7bd9" style="color: rgb(243, 121, 52);">World!<span>some</span></span><p>some</p><span class="glavred__error-c0bcfe14b7bd9" style="color: rgb(243, 121, 52);">World!</span><b></b>';
+        expectedHtmlStr = 'HelloWorld!<span>some</span><p>some</p>World!<b></b>'
+        expect(glavred.cleanHTML(htmlStr)).to.equal(expectedHtmlStr);
+      });
+    })
+  })
 })

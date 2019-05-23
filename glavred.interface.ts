@@ -38,7 +38,7 @@ export interface IParsedElement {
 
 export type TParsedHTMLResult = {
   text: string;
-  parsedHTML: number[][];
+  result: number[][];
 };
 
 export type TParticle = Array<string | boolean>;

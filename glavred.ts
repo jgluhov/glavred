@@ -1,5 +1,13 @@
-import { IProof, TStatus, IProofFragment, TParticle } from './glavred.interface';
+import {
+  IProof,
+  TStatus,
+  IProofFragment,
+  TParticle,
+  IParsedElement,
+  TParsedHTMLResult
+} from './glavred.interface';
 import { size, last } from 'lodash';
+import htmlParser from 'htmlparser2';
 
 export enum GlavredStatusEnum {
   OK = 'ok',
@@ -27,14 +35,71 @@ export default class Glavred {
     this.glvrd.abortProofreading();
   }
 
-  async proof(text: string): Promise<string> {
-    const proof = await this.proofread(text);
+  parseHTML(htmlStr: string = ''): TParsedHTMLResult {
+    let htmlIndex: number = 0;
+    let textIndex: number = 0;
 
-    const particles = this.parseHTML(text, proof.fragments);
+    const parsing = {
+      text: '',
+      result: []
+    };
 
-    if (!size(particles)) {
-      return text;
+    const parseFn = (parsedEl: IParsedElement): void => {
+      htmlIndex += this.getTagSize(parsedEl);
+  
+      this.getChildren(parsedEl).forEach(parseFn);        
+
+      const text = this.getData(parsedEl);
+
+      if (parsedEl.children) {
+        htmlIndex += this.getTagSize(parsedEl, false);
+        return;
+      }
+
+      if (!text.length) {
+        return;
+      }
+      
+      parsing.text += text;
+      
+      parsing.result.push([htmlIndex, text.length, textIndex]);
+      textIndex += text.length;
+      htmlIndex += text.length + this.getTagSize(parsedEl, false);
     }
+
+    const parsedElements: IParsedElement[]  = htmlParser.parseDOM(htmlStr);
+    parsedElements.forEach(parseFn)
+
+    return parsing;
+  }
+
+  private getChildren(parsedEl: IParsedElement) {
+    return parsedEl.children || [];
+  };
+  
+  private getData(parsedEl: IParsedElement): string {
+    return parsedEl.data ? parsedEl.data : '';
+  } 
+
+  private getTagSize(parsedEl: IParsedElement, open: boolean = true) {
+    if (parsedEl.type === 'text') {
+      return 0;
+    }
+
+    return parsedEl.name.length + (open ? 2 : 3);
+  }
+  
+
+  async proof(htmlStr: string): Promise<string> {
+    const parsing = this.parseHTML(htmlStr);
+
+    const proof = await this.proofread(parsing.text);
+
+    const particles = this.applyProof(htmlStr, proof);
+
+    // if (!size(particles)) {
+    //   return text;
+    // }
 
     const proofedHTML = particles
       .map(particle => {
@@ -62,35 +127,39 @@ export default class Glavred {
     return `<span style="color: rgb(243, 121, 52);" class="glavred__error-${particle[2]}">${particle[0]}</span>`;
   }
 
-  parseHTML(htmlStr: string, fragments: IProofFragment[]) {
+  cleanHTML(htmlStr: string = '') {
+    return htmlStr.replace(/<span class="glavred__error-.+?>(.+?)<\/span>/g, (str, match) => match);
+  }
+
+  applyProof(htmlStr: string, proof: IProof) {
     if (!htmlStr) {
       return [];
     }
 
-    if (!size(fragments)) {
+    if (!size(proof.fragments)) {
       return [[htmlStr, false, '']];
     }
 
     let currentIndex = 0;
-    let parsing = [];
+    let parsingArr = [];
 
-    for(let index = 0; index < fragments.length; index++) {
-      const fragment = fragments[index];
+    for(let index = 0; index < proof.fragments.length; index++) {
+      const fragment = proof.fragments[index];
 
       if (fragment.start > currentIndex) {
-        parsing.push([ htmlStr.slice(currentIndex, fragment.start), false, '' ]);
+        parsingArr.push([ htmlStr.slice(currentIndex, fragment.start), false, '' ]);
       }
 
-      parsing.push([ htmlStr.slice(fragment.start, fragment.end), true, fragment.hint.id ]);
+      parsingArr.push([ htmlStr.slice(fragment.start, fragment.end), true, fragment.hint.id ]);
 
       currentIndex = fragment.end;
 
-      if (last(fragments) === fragment && last(fragments).end < size(htmlStr)) {
-        parsing.push([ htmlStr.slice(fragment.end), false, '' ]);
+      if (last(proof.fragments) === fragment && last(proof.fragments).end < size(htmlStr)) {
+        parsingArr.push([ htmlStr.slice(fragment.end), false, '' ]);
       }
     }
 
-    return parsing;
+    return parsingArr;
   }
 
   private isOK(response: TStatus) {
