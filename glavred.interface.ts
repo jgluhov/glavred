@@ -1,3 +1,5 @@
+import { ParsingListItem } from "./glavred";
+
 export type TStatus = {
   status: string;
 }
@@ -36,9 +38,9 @@ export interface IParsedElement {
   children?: IParsedElement[];
 }
 
-export type TParsedHTMLResult = {
+export type TParsingList = {
   text: string;
-  result: number[][];
+  list: ParsingListItem[];
 };
 
 export type TParticle = Array<string | boolean>;

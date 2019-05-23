@@ -3,9 +3,9 @@ import {
   TStatus,
   TParticle,
   IParsedElement,
-  TParsedHTMLResult
+  IProofFragment
 } from './glavred.interface';
-import { size, last } from 'lodash';
+import { size, last, first } from 'lodash';
 import htmlParser from 'htmlparser2';
 
 export enum GlavredStatusEnum {
@@ -13,15 +13,84 @@ export enum GlavredStatusEnum {
   ERROR = 'error'
 }
 
+export class ParsingListItem {
+  constructor(private value: number[] = []) {}
+
+  get startHTMLIndex() {
+    return this.value[0];
+  }
+
+  get endHTMLIndex() {
+    return this.value[0] + this.value[1];
+  }
+
+  get startTextIndex() {
+    return this.value[2];
+  }
+
+  get endTextIndex() {
+    return this.value[2] + this.value[1];
+  }
+
+  get length() {
+    return this.value[1];
+  }
+
+  contains(fragment: IProofFragment): boolean {
+    if (!this.length) {
+      return false;
+    }
+
+    if (fragment.start === fragment.end) {
+      return false;
+    }
+
+    if (fragment.end < this.startTextIndex) {
+      return false;
+    }
+
+    if (fragment.start > this.endTextIndex) {
+      return false;
+    }
+
+    return fragment.start >= this.startTextIndex && fragment.end <= this.endTextIndex ||
+      fragment.start < this.startTextIndex || fragment.end > this.endTextIndex;
+  }
+}
+
+export class ParsingList {
+  constructor(
+    public text: string = '',
+    public items: ParsingListItem[] = []
+  ) {}
+
+  get first(): ParsingListItem {
+    return first(this.items);
+  }
+
+  get last(): ParsingListItem {
+    return last(this.items);
+  }
+
+  appendText(text: string) {
+    this.text += text;
+  }
+
+  appendItem(...params) {
+    this.items.push(new ParsingListItem(params));
+  }
+
+  get length() {
+    return this.items.length;
+  }
+}
+
 export default class Glavred {
-  parseHTML(htmlStr: string = ''): TParsedHTMLResult {
+  parseHTML(htmlStr: string = ''): ParsingList {
     let htmlIndex: number = 0;
     let textIndex: number = 0;
 
-    const parsing = {
-      text: '',
-      result: []
-    };
+    const parsingList = new ParsingList();
 
     const parseFn = (parsedEl: IParsedElement): void => {
       htmlIndex += this.getTagSize(parsedEl);
@@ -39,9 +108,9 @@ export default class Glavred {
         return;
       }
       
-      parsing.text += text;
-      
-      parsing.result.push([htmlIndex, text.length, textIndex]);
+      parsingList.appendText(text);
+      parsingList.appendItem(htmlIndex, text.length, textIndex)
+
       textIndex += text.length;
       htmlIndex += text.length + this.getTagSize(parsedEl, false);
     }
@@ -49,7 +118,7 @@ export default class Glavred {
     const parsedElements: IParsedElement[]  = htmlParser.parseDOM(htmlStr);
     parsedElements.forEach(parseFn)
 
-    return parsing;
+    return parsingList;
   }  
 
   async proof(htmlStr: string): Promise<string> {
@@ -57,7 +126,7 @@ export default class Glavred {
 
     const proof = await this.proofread(parsing.text);
 
-    const particles = this.applyProof(htmlStr, proof);
+    const particles = this.applyProof(htmlStr, parsing, proof);
 
     if (!size(particles)) {
       return parsing.text;
@@ -73,32 +142,73 @@ export default class Glavred {
     return proofedHTML;
   }
 
-  applyProof(htmlStr: string, proof: IProof) {
+  applyProof(htmlStr: string, parsingList: ParsingList, proof: IProof) {
+    const accumulator = [];
+
     if (!htmlStr) {
       return [];
     }
 
-    if (!size(proof.fragments)) {
+    // Filter incorrect fragments if there are any
+    let fragmens = proof.fragments
+      .filter(f => f.start < parsingList.text.length);
+
+    // If there are no fragments then return htmlStr
+    if (!size(fragmens)) {
       return [[htmlStr, false, '']];
     }
 
-    let currentIndex = 0;
-    let accumulator = [];
+    let currentHTMLIndex = 0;
 
-    for(let index = 0; index < proof.fragments.length; index++) {
-      const fragment = proof.fragments[index];
+    // Handle a prefix
+    if (parsingList.first.startHTMLIndex > currentHTMLIndex) {
+      accumulator.push([htmlStr.slice(currentHTMLIndex, parsingList.first.startHTMLIndex), false, '']);
+      currentHTMLIndex = parsingList.first.startHTMLIndex;
+    }
 
-      if (fragment.start > currentIndex) {
-        accumulator.push([ htmlStr.slice(currentIndex, fragment.start), false, '' ]);
+    // Our code 
+    for(let listIndex = 0; listIndex < parsingList.length; listIndex++) {
+      const listItem = parsingList.items[listIndex];
+      
+      if (!listItem.length) {
+        continue;
       }
 
-      accumulator.push([ htmlStr.slice(fragment.start, fragment.end), true, fragment.hint.id ]);
+      for(let fragIndex = 0; fragIndex < fragmens.length; fragIndex++) {
+        const fragment = fragmens[fragIndex];
 
-      currentIndex = fragment.end;
+        if (!listItem.contains(fragment)) {
+          accumulator.push( htmlStr.slice(currentHTMLIndex, listItem.endHTMLIndex), false, '');
+          currentHTMLIndex = listItem.endHTMLIndex;
+        } else {
+          const prevFragEnd = fragmens[fragIndex - 1] ? fragmens[fragIndex - 1].end : 0;
+          const prefixLength = Math.max(0, (fragment.start - listItem.startTextIndex - prevFragEnd));
+          if (prefixLength > 0) {
+            accumulator.push([htmlStr.slice(listItem.startHTMLIndex + prevFragEnd, listItem.startHTMLIndex + prevFragEnd + prefixLength), false, ''])
+          }
 
-      if (last(proof.fragments) === fragment && last(proof.fragments).end < size(htmlStr)) {
-        accumulator.push([ htmlStr.slice(fragment.end), false, '' ]);
+          const fragmentLength = fragment.end - fragment.start;
+          if (currentHTMLIndex < listItem.startHTMLIndex) {
+            accumulator.push([htmlStr.slice(currentHTMLIndex, listItem.startHTMLIndex), false, '']);
+          }
+
+        
+          accumulator.push([htmlStr.slice(listItem.startHTMLIndex + prefixLength + prevFragEnd, listItem.startHTMLIndex + prefixLength + prevFragEnd + fragmentLength), true, fragment.hint.id])
+          currentHTMLIndex = listItem.startHTMLIndex + prefixLength + fragmentLength;
+
+          if (fragment === last(fragmens)) {
+            const suffixLength = Math.max(0, listItem.endTextIndex - fragment.end);
+
+            if (suffixLength > 0) {
+              accumulator.push([htmlStr.slice(listItem.startHTMLIndex + prefixLength + fragmentLength, listItem.startHTMLIndex + prefixLength + fragmentLength + suffixLength), false, ''])
+            }
+          }
+        }
       }
+    }
+
+    if (parsingList.last.endHTMLIndex < htmlStr.length) {
+      accumulator.push([htmlStr.slice(parsingList.last.endHTMLIndex), false, '']);
     }
 
     return accumulator;
